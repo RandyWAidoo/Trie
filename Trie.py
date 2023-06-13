@@ -200,8 +200,6 @@ class Trie:
             # ensures prefix safety until the end
             if not child.frequency and not len(child.children):
                 root.children.pop(node)
-            else:
-                pass
         return result_list
 
     def decompress(self)->list:

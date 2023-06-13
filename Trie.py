@@ -146,19 +146,6 @@ class Trie:
             prefix_end.children.pop(first_child)
         return True
     
-    def __max_frequency_above(self, root: Node, curr_max: int = 0)->int:
-        if root.frequency > curr_max:
-            curr_max = root.frequency
-        for node in root.children:
-            child = node.get()
-            freq = self.__max_frequency_above(child, curr_max)
-            if freq > curr_max:
-                curr_max = freq
-        return curr_max
-    
-    def max_frequency_above(self, min_freq: int = 0)->int: 
-        return self.__max_frequency_above(self.root, min_freq)
-    
     def __discriminate(self, root: Node, min_count: float):
         #If the current node's frequency is too low,
         # make its frequency negative(it is safe for the zero case as well)

@@ -285,12 +285,9 @@ class Trie:
     def __decompress(self, root: Node, 
                      result_list: list = [], word: str = "")->list:
         #Decrement frequency
-        def decrement_freq():
+        if root.frequency:
             root.frequency -= 1
-        def decrement_no_freq():
-            pass
-        decrement = decrement_freq if root.frequency else decrement_no_freq
-        decrement()
+            self.letter_count -= 1
         #Append the result and return if it is a leaf node
         # and it still has a frequency
         if not len(root.children):
@@ -302,7 +299,9 @@ class Trie:
             child = node.get()
             #Decrement root frequency
             # for each child node traversed from it
-            decrement()
+            if root.frequency:
+                root.frequency -= 1
+                self.letter_count -= 1
             #Recurse on the child
             self.__decompress(child, result_list, word+child.letter)
             #Having the condition of no children before deletion

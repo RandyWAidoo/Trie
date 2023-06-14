@@ -152,7 +152,7 @@ class Trie:
             prefix_end.children.pop(first_child)
         return True
     
-    def __discriminate(self, root: Node, min_count: float):
+    def __prune(self, root: Node, min_count: float):
         #If the current node's frequency is too low,
         # make its frequency negative(it is safe for the zero case as well)
         if root.frequency < min_count:
@@ -162,7 +162,7 @@ class Trie:
         # don't appear frequently enough andd aren't prefixes
         for node in root.children:
             child = node.get()
-            self.__discriminate(child, min_count)
+            self.__prune(child, min_count)
             #If the child's frequency was too low, 
             # it would have been set to a negative value. 
             #So if it isn't negative, continue
@@ -181,9 +181,9 @@ class Trie:
             else:
                 child.frequency *= -1
         
-    def discriminate(self, min_fraction: float):
+    def prune(self, min_fraction: float):
         min_count = min_fraction/100*self.letter_count
-        self.__discriminate(self.root, min_count)
+        self.__prune(self.root, min_count)
 
     def __decompress(self, root: Node, result_list: list = [], word: str = "")->list:
         #Recurseively add every new string to the list.

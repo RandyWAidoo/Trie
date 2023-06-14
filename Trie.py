@@ -65,7 +65,6 @@ class Trie:
             #Increment index
             index += 1
         return result
-        
     
     def append(self, word: str):
         #Going down the Trie and appending letters as needed using a 
@@ -152,41 +151,72 @@ class Trie:
             prefix_end.children.pop(first_child)
         return True
     
-    def __prune(self, root: Node, min_count: float):
+    def __prune(self, letter_to_depth_to_freq: dict, 
+                root: Node, min_fraction: float, depth=0):
         #If the current node's frequency is too low,
         # make its frequency negative(it is safe for the zero case as well)
-        if root.frequency < min_count:
+        # First calculate the total number of letters on this depth
+        depth_total = 0
+        for letter in letter_to_depth_to_freq:
+            depth_to_freq = letter_to_depth_to_freq[letter]
+            if depth in depth_to_freq:
+                depth_total += depth_to_freq[depth]
+        # Then calculate the minimum frequency
+        min_frequency = min_fraction*depth_total
+        # Then evaluate if the root has a high enough frequency
+        #  and if it isn't, mark its frequency as negative
+        if root.frequency < min_frequency:
             root.frequency *= -1
-        #Recurseively iterate over the Trie and 
+        #Free memory
+        del depth_total
+        del min_frequency
+        #Recursively iterate over the Trie and 
         # delete words/letters that 
-        # don't appear frequently enough andd aren't prefixes
+        # don't appear frequently enough and aren't prefixes
         for node in root.children:
             child = node.get()
-            self.__prune(child, min_count)
+            self.__prune(letter_to_depth_to_freq, child, min_fraction, depth+1)
             #If the child's frequency was too low, 
             # it would have been set to a negative value. 
             #So if it isn't negative, continue
             if child.frequency >= 0:
                 continue
             #Otherwise:
+            # Revert the frequency
+            child.frequency = abs(child.frequency)
             # If the child has no children, 
-            #  delete it since it is not a prefix
+            # subtract out its frequency from the total letter count
+            # and delete it since it is not a prefix
             if not len(child.children):
-                #Make the frequency positive and subtract it from the letter count
-                child.frequency *= -1
-                self.letter_count -= child.frequency 
-                #Deletion
+                self.letter_count -= child.frequency
                 root.children.pop(node)
-            # Otherwise restore its frequency
-            else:
-                child.frequency *= -1
+
+    #Generate a dict maping letters to dicts mapping each depth leval 
+    # of the tree to the number of occurrences of that letter
+    def __tree_report(self, root: Node, 
+                      depth = 0, letter_to_depth_to_freq=dict())->dict:
+        #Add the visited letter to the dictionary
+        if root.letter not in letter_to_depth_to_freq:
+            letter_to_depth_to_freq[root.letter] = {depth: root.frequency}
+        elif depth not in letter_to_depth_to_freq[root.letter]:
+            letter_to_depth_to_freq[root.letter][depth] = root.frequency
+        else:
+            letter_to_depth_to_freq[root.letter][depth] += root.frequency
+        #Then recurse on each of its children down to the last node
+        for node in root.children:
+            child = node.get()
+            self.__tree_report(child, depth+1, letter_to_depth_to_freq)
+        return letter_to_depth_to_freq
+    
+    def tree_report(self)->dict: 
+        return self.__tree_report(self.root)
         
     def prune(self, min_fraction: float):
-        min_count = min_fraction/100*self.letter_count
-        self.__prune(self.root, min_count)
+        self.__prune(self.tree_report(), self.root, min_fraction)
 
-    def __decompress(self, root: Node, result_list: list = [], word: str = "")->list:
-        #Recurseively add every new string to the list.
+    def __decompress(self, root: Node, 
+                     result_list: list = [], word: str = "")->list:
+        #Recursively add every new string to the list.
         #New strings are found when a leaf node is found.
         #This process empties the Trie
         #Decrement frequency and letter count

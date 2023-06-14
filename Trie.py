@@ -108,7 +108,8 @@ class Trie:
         prefix_end = self.__get_word_end_node(prefix)
         if prefix == None:
             return False
-        #Search for the letters
+        #Search for the letters while moving the prefix end to the last
+        # non-zero node after a subtract
         parent = prefix_end
         children = parent.children
         index = 0
@@ -127,14 +128,19 @@ class Trie:
                 if child.frequency:
                     child.frequency -= 1
                     self.letter_count -= 1
+                    #Move the prefix end to the parent if the child node
+                    # still has frequency
+                    if child.frequency:
+                        prefix = parent
+                #Aadvance the parent and children
                 parent = child
                 children = parent.children
                 break
             #Increment index
             index += 1
         #Delete all from the prefix node down to the end of the word
-        # if the last node of the word is a leaf node
-        if not len(parent.children):
+        # if the last non-zero node isn't a leaf node
+        if not len(prefix_end.children):
             #Find the first letter node again
             first_child = None #This should be a linked list node
             for node in parent.children:

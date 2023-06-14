@@ -193,22 +193,37 @@ class Trie:
                 depth_total += depth_to_freq[depth]
         return depth_total
         
-    
+    #Check if the depth's letter count is too low or 
+    # the proportion of the node's letter 
+    # at this depth is too small
+    def __valid(self, root: Node, letter_to_depth_to_freq, depth, 
+                min_letters, min_depth_fraction):
+        #Get the number of letters at this depth
+        depth_total = Trie.__depth_total(letter_to_depth_to_freq, depth)
+        #Get the proportion of this letter 
+        # out of all letters at this depth 
+        frequency = 0
+        depth_to_freq = letter_to_depth_to_freq[root.letter]
+        if depth in depth_to_freq:
+            frequency = depth_to_freq[depth]
+        proportion = frequency/depth_total
+        #Check that both meet the requirements
+        if depth_total >= min_letters \
+        and proportion >= min_depth_fraction:
+            return True
+        return False
+
     #Recursive helper of `prune` with no prefix protection
     def __prune_no_protect(self, letter_to_depth_to_freq: dict, 
                            root: Node, min_letters: int, 
                            min_depth_fraction: float, 
                            depth=0):
-        #If the depth's count is too low or 
-        # current node's depth proportion is too low,
+        #If the node is invalid,
         # remove and subtract out its frequency
-        depth_total = Trie.__depth_total(letter_to_depth_to_freq, depth)
-        if depth_total < min_letters \
-        or root.frequency/depth_total < min_depth_fraction:
+        if self.__valid(root, letter_to_depth_to_freq, depth,
+                        min_letters, min_depth_fraction):
             self.letter_count -= root.frequency
             root.frequency = 0
-        #Free memory
-        del depth_total
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough
@@ -232,15 +247,11 @@ class Trie:
                                root: Node, min_letters: int, 
                                min_depth_fraction: float, 
                                depth=0):
-        #If the depth's count is too low or 
-        # current node's depth proportion is too low,
+        #If the node is invalid,
         # mark it by making its frequency negative
-        depth_total = Trie.__depth_total(letter_to_depth_to_freq, depth)
-        if depth_total < min_letters \
-        or root.frequency/depth_total < min_depth_fraction:
+        if self.__valid(root, letter_to_depth_to_freq, depth,
+                        min_letters, min_depth_fraction):
             root.frequency *= -1
-        #Free memory
-        del depth_total
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough and aren't prefixes

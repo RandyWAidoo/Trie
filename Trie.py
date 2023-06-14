@@ -161,15 +161,15 @@ class Trie:
             depth_to_freq = letter_to_depth_to_freq[letter]
             if depth in depth_to_freq:
                 depth_total += depth_to_freq[depth]
-        # Then calculate the minimum frequency
-        min_frequency = min_fraction*depth_total
-        # Then evaluate if the root has a high enough frequency
-        #  and if it isn't, mark its frequency as negative
-        if root.frequency < min_frequency:
-            root.frequency *= -1
+        # If the total is non-zero,
+        #  evaluate if the root has a high enough frequency
+        #  and if it isn't, mark the roots' frequency as negative.
+        if depth_total:
+            fraction = root.frequency/depth_total
+            if fraction < min_fraction:
+                root.frequency *= -1
         #Free memory
         del depth_total
-        del min_frequency
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough and aren't prefixes

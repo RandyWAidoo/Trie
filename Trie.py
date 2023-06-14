@@ -175,8 +175,8 @@ class Trie:
             else:
                 child.frequency *= -1
         
-    def discriminate(self, min_frequency: float):
-        min_count = min_frequency/100*self.letter_count
+    def discriminate(self, min_fraction: float):
+        min_count = min_fraction/100*self.letter_count
         self.__discriminate(self.root, min_count)
 
     def __decompress(self, root: Node, result_list: list = [], word: str = "")->list:
@@ -188,6 +188,7 @@ class Trie:
             root.frequency -= 1
             self.letter_count -= 1
         #Append the result and return if it is a leaf node
+        # and it still has a frequency
         if not len(root.children):
             result_list.append(word)
             return result_list
@@ -195,6 +196,12 @@ class Trie:
         for node in root.children:
             #Extract a word from the letters
             child = node.get()
+            #Decrement root frequency and letter count
+            # for each child node traversed from it
+            if root.frequency:
+                root.frequency -= 1
+                self.letter_count -= 1
+            #Recurse on the child
             self.__decompress(child, result_list, word+child.letter)
             #Having the condition of no children before deletion
             # ensures prefix safety until the end

@@ -73,8 +73,8 @@ class Trie:
                 break
             #Add to the result
             result += letter
-        #Return if all letters were found
-        if len(result) == len(word):
+        #Return if all letters were found or no letters were found
+        if len(result) == len(word) or not len(result):
             return result
         #Go down the rest of the branch based on 
         # the rightmost most popular children

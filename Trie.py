@@ -56,6 +56,7 @@ class Trie:
                 return result
             #Iterating through the children 
             #and checking for matches otherwise
+            found = False
             for node in children:
                 child = node.get()
                 if child.letter != letter:
@@ -63,11 +64,18 @@ class Trie:
                 #When a match happens, stop iterating 
                 # and advance the parent and children pointers down
                 # the Trie
+                found = True
                 parent = child
                 children = parent.children
                 break
+            #If no matching node was found, stop
+            if not found:
+                break
             #Add to the result
             result += letter
+        #Return if all letters were found
+        if len(result) == len(word):
+            return result
         #Go down the rest of the branch based on 
         # the rightmost most popular children
         while len(children):
@@ -82,7 +90,7 @@ class Trie:
             parent = popular
             children = parent.children
             #Add to the result
-            result += letter
+            result += parent.letter
         return result
 
     def match_count(self, word: str)->int:

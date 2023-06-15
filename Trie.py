@@ -245,7 +245,8 @@ class Trie:
         #Get the proportion of this letter 
         # out of all letters in this set of children
         total_children = sum(
-            [node.get().frequency for node in root.children]
+            [node.get().frequency \
+             for node in root.children.copy()]
         )
         proportion = child.frequency/total_children
         #Check that both meet the requirements

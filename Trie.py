@@ -29,7 +29,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                break
+                children.Break()
             #If no matching child was found, stop
             if not found:
                 break
@@ -58,7 +58,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                break
+                children.Break()
             #If no matching node was found, stop
             if not found:
                 break
@@ -106,7 +106,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                break
+                children.Break()
             #Break if no match is found
             if not found:
                 break
@@ -135,7 +135,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                break
+                children.Break()
             #Adding the letter as a child node when 
             # there are no more nodes to traverse
             if not found:
@@ -165,7 +165,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                break
+                children.Break()
             #Break if no match is found
             if not found:
                 break
@@ -173,6 +173,16 @@ class Trie:
             parent = child
             children = parent.children
         return parent
+    
+    #Delete all nodes below a particular node
+    def __prune_all_below(self, root: Node):
+        #Recursively iterate over the Trie and 
+        # delete words/letters below
+        for node in root.children:
+            child = node.get()
+            self.__prune_all_below(child)
+            self.letter_count -= child.frequency
+            root.children.pop(node)
 
     #Delete a word from the Trie starting from the end of a choosen prefix.
     #We can only delete when
@@ -182,11 +192,11 @@ class Trie:
     # 2. When there is some chain of 0-frequencies 
     # and we arent protecting prefixes
     def delete(self, word: str, prefix: str = "", protect_prefixes=True)->bool:
+        #Going down the Trie and decrementing/deleting letters 
+        # as needed using a breadth-first-search-like algorithm
         #If the word doesn't exist, return
         if (prefix + word) not in self:
             return False
-        #Going down the Trie and decrementing/deleting letters 
-        # as needed using a breadth-first-search-like algorithm
         #First get the node at the end of the prefix
         prefix_end = self.__get_word_end_node(prefix)
         #Search for the letters while moving the prefix end to the last
@@ -201,7 +211,7 @@ class Trie:
             for node in children:
                 child = node.get()
                 if child.letter == letter:
-                    break
+                    children.Break()
             #Subtract from frequency and letter count if 
             # the child's frequency is non-zero
             if child.frequency:
@@ -214,23 +224,14 @@ class Trie:
             #Advance the parent and children
             parent = child
             children = parent.children
-        #Delete all from the prefix node down to the bottom of the Trie
+        #Delete all below the prefix node 
         # if the last non-zero node isn't a leaf node and either
         # we aren't protecting prefixes 
         # or the last 0-frequency node is a leaf
         # (the 0-frequency nodes go down to the bottom).
         if len(prefix_end.children) \
         and (not protect_prefixes or not len(parent.children)):
-            #Find the first letter node again
-            first_letter_child = None #This should be a linked list node
-            for node in parent.children:
-                child = node.get()
-                if child.letter == word[0]:
-                    first_letter_child = node
-                    break
-            #Remove the that first letter child
-            # along with all its children
-            prefix_end.children.pop(first_letter_child)
+            self.__prune_all_below(prefix_end)
         return True
         
     #Check if the depth's letter count is sufficient  
@@ -252,15 +253,6 @@ class Trie:
         and proportion >= branch_fraction:
             return True
         return False
-    
-    def __prune_all_below(self, root: Node):
-        #Recursively iterate over the Trie and 
-        # delete words/letters below
-        for node in root.children:
-            child = node.get()
-            self.__prune_all_below(child)
-            self.letter_count -= child.frequency
-            root.children.pop(node)
                 
 
     #Recursive helper of `prune` with no prefix protection
@@ -284,6 +276,7 @@ class Trie:
                 self.letter_count -= root.frequency
                 root.children.pop(node)
                 continue
+            #Otherwise, recurse on the child
             self.__prune_no_protect(
                 depth_to_count, child, 
                 min_letters, branch_fraction,
@@ -329,6 +322,7 @@ class Trie:
                 depth_to_count.append(child.frequency)
             else:
                 depth_to_count[depth] += child.frequency
+            #Recurse on the child
             self.__depth_counts(child, depth+1, depth_to_count)
         return depth_to_count
     

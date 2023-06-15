@@ -249,6 +249,16 @@ class Trie:
         and proportion >= branch_fraction:
             return True
         return False
+    
+    def __prune_all_below(self, root: Node):
+        #Recursively iterate over the Trie and 
+        # delete words/letters below
+        for node in root.children:
+            child = node.get()
+            self.__prune_all_below(child)
+            self.letter_count -= child.frequency
+            root.children.pop(node)
+                
 
     #Recursive helper of `prune` with no prefix protection
     def __prune_no_protect(self, depth_to_count: list, 
@@ -260,19 +270,22 @@ class Trie:
         # don't appear frequently enough
         for node in root.children:
             child = node.get()
+            #If the node is invalid,
+            # delete all its children,
+            # subtract out its frequency,
+            # and then delete the child itself
+            if not self.__valid(child, root,
+                                depth_to_count, depth,
+                                min_letters, branch_fraction):
+                self.__prune_all_below(child)
+                self.letter_count -= root.frequency
+                root.children.pop(node)
+                continue
             self.__prune_no_protect(
                 depth_to_count, child, 
                 min_letters, branch_fraction,
                 depth+1
             )
-            #If the node is invalid,
-            # subtract out its frequency 
-            # and delete it
-            if not self.__valid(child, root,
-                                depth_to_count, depth,
-                                min_letters, branch_fraction):
-                self.letter_count -= root.frequency
-                root.children.pop(node)
 
     #Recursive helper of `prune` with prefix protection
     def __prune_prefix_protect(self, depth_to_count: dict, 

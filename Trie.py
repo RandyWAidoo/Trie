@@ -231,8 +231,8 @@ class Trie:
                 self.letter_count -= child.frequency
                 root.children.pop(node)
     
-    #Recursive helper of `depth_report`
-    def __depth_report(self, root: Node, 
+    #Recursive helper of `depth_counts`
+    def __depth_counts(self, root: Node, 
                        depth = 0, depth_to_count=[])->list:
         #Update the depth to count list
         # and recurse on each of `root`'s children down to the last node
@@ -243,12 +243,12 @@ class Trie:
                 depth_to_count.append(child.frequency)
             else:
                 depth_to_count[depth] += child.frequency
-            self.__depth_report(child, depth+1, depth_to_count)
+            self.__depth_counts(child, depth+1, depth_to_count)
         return depth_to_count
     
     #Generate a list maping depth to the numnber of letters there
-    def depth_report(self)->list: 
-        return self.__depth_report(self.root)
+    def depth_counts(self)->list: 
+        return self.__depth_counts(self.root)
         
     #Prune the tree of letters that are part of depths that have too few letters
     # and letters at those depths that don't appear frequently enough.
@@ -256,12 +256,12 @@ class Trie:
               min_depth_fraction: float, protect_prefixes: bool = True):
         if protect_prefixes:
             self.__prune_prefix_protect(
-                self.depth_report(), self.root, 
+                self.depth_counts(), self.root, 
                 min_letters, min_depth_fraction
             )
         else:
             self.__prune_no_protect(
-                self.depth_report(), self.root, 
+                self.depth_counts(), self.root, 
                 min_letters, min_depth_fraction
             )
 

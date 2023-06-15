@@ -222,15 +222,15 @@ class Trie:
         if len(prefix_end.children) \
         and (not protect_prefixes or not len(parent.children)):
             #Find the first letter node again
-            first_child = None #This should be a linked list node
+            first_letter_child = None #This should be a linked list node
             for node in parent.children:
                 child = node.get()
                 if child.letter == word[0]:
-                    first_child = node
+                    first_letter_child = node
                     break
             #Remove the that first letter child
             # along with all its children
-            prefix_end.children.pop(first_child)
+            prefix_end.children.pop(first_letter_child)
         return True
         
     #Check if the depth's letter count is sufficient  

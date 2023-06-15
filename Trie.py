@@ -243,7 +243,10 @@ class Trie:
         depth_total = depth_to_count[depth]
         #Get the proportion of this letter 
         # out of all letters in this set of children
-        proportion = child.frequency/len(root.children)
+        total_children = sum(
+            [node.get().frequency for node in root.children]
+        )
+        proportion = child.frequency/total_children
         #Check that both meet the requirements
         if depth_total >= min_letters \
         and proportion >= branch_fraction:

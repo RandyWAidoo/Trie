@@ -40,7 +40,7 @@ class Trie:
     
     #Get the full branch with which a word has any matches
     # or return if the word gets a full match
-    def nearest(self, word: str)->bool:
+    def nearest(self, word: str)->str:
         result = ""
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.
@@ -91,7 +91,7 @@ class Trie:
         return result
 
     #Get the full branch with which a word has any matches
-    def label(self, word: str)->bool:
+    def label(self, word: str)->str:
         result = ""
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.

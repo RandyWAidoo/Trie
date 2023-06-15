@@ -38,27 +38,6 @@ class Trie:
             index += 1
         return True
     
-    #Recursive helper of `tree_report`
-    def __tree_report(self, root: Node, 
-                      depth = 0, letter_to_depth_to_freq=dict())->dict:
-        #Add the visited letter to the dictionary
-        if root.letter not in letter_to_depth_to_freq:
-            letter_to_depth_to_freq[root.letter] = {depth: root.frequency}
-        elif depth not in letter_to_depth_to_freq[root.letter]:
-            letter_to_depth_to_freq[root.letter][depth] = root.frequency
-        else:
-            letter_to_depth_to_freq[root.letter][depth] += root.frequency
-        #Then recurse on each of its children down to the last node
-        for node in root.children:
-            child = node.get()
-            self.__tree_report(child, depth+1, letter_to_depth_to_freq)
-        return letter_to_depth_to_freq
-    
-    #Generate a dict maping letters to dicts mapping each depth leval 
-    # of the tree to the number of occurrences of that letter
-    def tree_report(self)->dict: 
-        return self.__tree_report(self.root)
-    
     #Get a node at the end of a certain word
     def __get_word_end_node(self, prefix: str)->Node:
         result = self.root
@@ -183,30 +162,18 @@ class Trie:
             #Remove the branch of the prefix end
             prefix_end.children.pop(first_child)
         return True
-    
-    #Calculate the total number of letters at a depth level
-    def __depth_total(letter_to_depth_to_freq, depth):
-        depth_total = 0
-        for letter in letter_to_depth_to_freq:
-            depth_to_freq = letter_to_depth_to_freq[letter]
-            if depth in depth_to_freq:
-                depth_total += depth_to_freq[depth]
-        return depth_total
         
-    #Check if the depth's letter count is too low or 
-    # the proportion of the node's letter 
-    # at this depth is too small
-    def __valid(self, root: Node, letter_to_depth_to_freq, depth, 
+    #Check if the depth's letter count is sufficient  
+    # and the proportion of the node's letter 
+    # among the the children of its parent is large enough
+    def __valid(self, child: Node, root: Node,
+                depth_to_count, depth, 
                 min_letters, min_depth_fraction):
         #Get the number of letters at this depth
-        depth_total = Trie.__depth_total(letter_to_depth_to_freq, depth)
+        depth_total = depth_to_count[depth]
         #Get the proportion of this letter 
-        # out of all letters at this depth 
-        frequency = 0
-        depth_to_freq = letter_to_depth_to_freq[root.letter]
-        if depth in depth_to_freq:
-            frequency = depth_to_freq[depth]
-        proportion = frequency/depth_total
+        # out of all letters in this set of children
+        proportion = child.frequency/len(root.children)
         #Check that both meet the requirements
         if depth_total >= min_letters \
         and proportion >= min_depth_fraction:
@@ -214,68 +181,74 @@ class Trie:
         return False
 
     #Recursive helper of `prune` with no prefix protection
-    def __prune_no_protect(self, letter_to_depth_to_freq: dict, 
-                           root: Node, min_letters: int, 
-                           min_depth_fraction: float, 
+    def __prune_no_protect(self, depth_to_count: list, 
+                           root: Node, 
+                           min_letters: int, min_depth_fraction: float, 
                            depth=0):
-        #If the node is invalid,
-        # remove and subtract out its frequency
-        if self.__valid(root, letter_to_depth_to_freq, depth,
-                        min_letters, min_depth_fraction):
-            self.letter_count -= root.frequency
-            root.frequency = 0
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough
         for node in root.children:
             child = node.get()
             self.__prune_no_protect(
-                letter_to_depth_to_freq, child, 
+                depth_to_count, child, 
                 min_letters, min_depth_fraction,
                 depth+1
             )
-            #If the child's frequency was too low, 
-            # it would have been set to 0. 
-            #So if it isn't 0, continue
-            if child.frequency > 0:
-                continue
-            #Otherwise, delete the child
-            root.children.pop(node)
+            #If the node is invalid,
+            # subtract out its frequency 
+            # and delete it
+            if not self.__valid(child, root,
+                                depth_to_count, depth,
+                                min_letters, min_depth_fraction):
+                self.letter_count -= root.frequency
+                root.children.pop(node)
 
     #Recursive helper of `prune` with prefix protection
-    def __prune_prefix_protect(self, letter_to_depth_to_freq: dict, 
-                               root: Node, min_letters: int, 
-                               min_depth_fraction: float, 
+    def __prune_prefix_protect(self, depth_to_count: dict, 
+                               root: Node, 
+                               min_letters: int, min_depth_fraction: float, 
                                depth=0):
-        #If the node is invalid,
-        # mark it by making its frequency negative
-        if self.__valid(root, letter_to_depth_to_freq, depth,
-                        min_letters, min_depth_fraction):
-            root.frequency *= -1
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough and aren't prefixes
         for node in root.children:
             child = node.get()
             self.__prune_prefix_protect(
-                letter_to_depth_to_freq, child, 
+                depth_to_count, child, 
                 min_letters, min_depth_fraction,
                 depth+1
             )
-            #If the child's frequency was too low, 
-            # it would have been set to a negative value. 
-            #So if it isn't negative, continue
-            if child.frequency >= 0:
-                continue
-            #Otherwise:
-            # Revert the frequency
-            child.frequency = abs(child.frequency)
-            # If the child has no children or we aren't protecting prefixes,
+            #The child must not have children and must be invalid to
+            # be deleted. This protects prefixes.
+            #If the child is invalid,
             # subtract out its frequency from the total letter count
-            # and delete it since it is not a prefix
-            if not len(child.children):
+            # and delete it
+            if not len(child.children) \
+            and not self.__valid(child, root, 
+                                depth_to_count, depth,
+                                min_letters, min_depth_fraction):
                 self.letter_count -= child.frequency
                 root.children.pop(node)
+    
+    #Recursive helper of `depth_report`
+    def __depth_report(self, root: Node, 
+                       depth = 0, depth_to_count=[])->list:
+        #Update the depth to count list
+        # and recurse on each of `root`'s children down to the last node
+        for node in root.children:
+            child = node.get()
+            #Add the visited letter to the depth count
+            if depth == len(depth_to_count):
+                depth_to_count.append(child.frequency)
+            else:
+                depth_to_count[depth] += child.frequency
+            self.__depth_report(child, depth+1, depth_to_count)
+        return depth_to_count
+    
+    #Generate a list maping depth to the numnber of letters there
+    def depth_report(self)->list: 
+        return self.__depth_report(self.root)
         
     #Prune the tree of letters that are part of depths that have too few letters
     # and letters at those depths that don't appear frequently enough.
@@ -283,12 +256,12 @@ class Trie:
               min_depth_fraction: float, protect_prefixes: bool = True):
         if protect_prefixes:
             self.__prune_prefix_protect(
-                self.tree_report(), self.root, 
+                self.depth_report(), self.root, 
                 min_letters, min_depth_fraction
             )
         else:
             self.__prune_no_protect(
-                self.tree_report(), self.root, 
+                self.depth_report(), self.root, 
                 min_letters, min_depth_fraction
             )
 
@@ -298,7 +271,6 @@ class Trie:
         #Decrement frequency
         if root.frequency:
             root.frequency -= 1
-            self.letter_count -= 1
         #Append the result and return if it is a leaf node
         # and it still has a frequency
         if not len(root.children):
@@ -312,7 +284,6 @@ class Trie:
             # for each child node traversed from it
             if root.frequency:
                 root.frequency -= 1
-                self.letter_count -= 1
             #Recurse on the child
             self.__decompress(child, result_list, word+child.letter)
             #Having the condition of no children before deletion

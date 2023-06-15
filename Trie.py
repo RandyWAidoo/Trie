@@ -39,6 +39,7 @@ class Trie:
         return True
     
     #Get the full branch with which a word has any matches
+    # or return if the word gets a full match
     def nearest(self, word: str)->bool:
         result = ""
         #Going down the Trie and checking for matches 
@@ -90,10 +91,14 @@ class Trie:
             children = parent.children
         return result
 
-    def match_count(self, word: str)->int:
-        match_count = 0
-        #Going down the Trie and counting matches 
-        # using a breadth-first-search-like algorithm
+    #Get the full branch with which a word has any matches
+    def label(self, word: str)->bool:
+        result = ""
+        #Going down the Trie and checking for matches 
+        # using a breadth-first-search-like algorithm.
+        #If there are no children left 
+        # or not enough matches were found, 
+        # either return or continue down the branch based on popularity
         parent = self.root
         children = parent.children
         for letter in word:
@@ -107,15 +112,36 @@ class Trie:
                     continue
                 found = True
                 break
-            #Break if no match is found
+            #If no matching node was found, stop
             if not found:
                 break
-            #Add to the match count
-            match_count += 1
+            #Add to the result
+            result += letter
             #Advance the parent and children
             parent = child
             children = parent.children
-        return match_count
+        #Return if no letters were found
+        if not len(result):
+            return result
+        #Go down the rest of the branch based on 
+        # the rightmost most popular children
+        while len(children):
+            #Select the most poular child
+            popular = self.root
+            for node in children:
+                child = node.get()
+                if child.frequency < popular.frequency:
+                    continue
+                popular = child
+            #If the popular one is still the root, choose the first child
+            if popular is self.root:
+                popular = children.head.get()
+            #Add to the result
+            result += popular.letter
+            #Advance the parent and children on the popular path
+            parent = popular
+            children = parent.children
+        return result
     
     #Add a word to the Trie while tracking letter frequencies
     def append(self, word: str):

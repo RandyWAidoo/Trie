@@ -29,7 +29,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                children.Break()
+                break
             #If no matching child was found, stop
             if not found:
                 break
@@ -58,7 +58,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                children.Break()
+                break
             #If no matching node was found, stop
             if not found:
                 break
@@ -106,7 +106,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                children.Break()
+                break
             #Break if no match is found
             if not found:
                 break
@@ -135,7 +135,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                children.Break()
+                break
             #Adding the letter as a child node when 
             # there are no more nodes to traverse
             if not found:
@@ -165,7 +165,7 @@ class Trie:
                 if child.letter != letter:
                     continue
                 found = True
-                children.Break()
+                break
             #Break if no match is found
             if not found:
                 break
@@ -211,7 +211,7 @@ class Trie:
             for node in children:
                 child = node.get()
                 if child.letter == letter:
-                    children.Break()
+                    break
             #Subtract from frequency and letter count if 
             # the child's frequency is non-zero
             if child.frequency:

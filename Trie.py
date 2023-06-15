@@ -41,6 +41,49 @@ class Trie:
             #Increment index
             index += 1
         return True
+    
+    #Get the full branch with which a word has any matches
+    def nearest(self, word: str)->bool:
+        result = ""
+        #Going down the Trie and checking for matches 
+        # using a breadth-first-search-like algorithm
+        parent = self.root
+        children = parent.children
+        for letter in word:
+            #Returning when
+            # there are no more nodes to traverse
+            if not len(children):
+                return result
+            #Iterating through the children 
+            #and checking for matches otherwise
+            for node in children:
+                child = node.get()
+                if child.letter != letter:
+                    continue
+                #When a match happens, stop iterating 
+                # and advance the parent and children pointers down
+                # the Trie
+                parent = child
+                children = parent.children
+                break
+            #Add to the result
+            result += letter
+        #Go down the rest of the branch based on 
+        # the rightmost most popular children
+        while len(children):
+            #Select the most poular child
+            popular = self.root
+            for node in children:
+                child = node.get()
+                if child.letter < popular.frequency:
+                    continue
+                popular = child
+            #Advance the parent and children on the popular path
+            parent = popular
+            children = parent.children
+            #Add to the result
+            result += letter
+        return result
 
     def match_count(self, word: str)->int:
         match_count = 0
@@ -49,9 +92,7 @@ class Trie:
         # breadth-first-search-like algorithm
         parent = self.root
         children = parent.children
-        index = 0
-        while index < len(word):
-            letter = word[index]
+        for letter in word:
             #Returning when
             # there are no more nodes to traverse
             if not len(children):
@@ -70,44 +111,7 @@ class Trie:
                 parent = child
                 children = parent.children
                 break
-            #Increment index
-            index += 1
         return match_count
-    
-    #Get a node at the end of a certain word
-    def __get_word_end_node(self, prefix: str)->Node:
-        result = self.root
-        #Going down the Trie and checking letters 
-        # until the full word is found using a 
-        # breadth-first-search-like algorithm
-        parent = self.root
-        children = parent.children
-        index = 0
-        while index < len(prefix):
-            letter = prefix[index]
-            #Returning when
-            # there are no more nodes to traverse
-            if not len(children):
-                result = None
-                break
-            #Iterating through the children 
-            #and checking for matches otherwise
-            for node in children:
-                child = node.get()
-                if child.letter != letter:
-                    continue
-                #When a match happens, 
-                # set the result to the matching node,
-                # stop iterating,
-                # and advance the parent and children pointers down
-                # the Trie
-                result = child
-                parent = child
-                children = parent.children
-                break
-            #Increment index
-            index += 1
-        return result
     
     #Add a word to the Trie while tracking letter frequencies
     def append(self, word: str):
@@ -115,9 +119,7 @@ class Trie:
         # breadth-first-search-like algorithm
         parent = self.root
         children = parent.children
-        index = 0
-        while index < len(word):
-            letter = word[index]
+        for letter in word:
             #Going down the Trie and 
             # incrementing the frequency of the letter if it is found.
             #If none of the letters of the current children are right, 
@@ -140,10 +142,40 @@ class Trie:
             child.frequency += 1
             parent = child
             children = parent.children
-            #Increment letter count and index
+            #Increment letter count
             self.letter_count += 1
-            index += 1
     
+    #Get a node at the end of a certain word
+    def __get_word_end_node(self, word: str)->Node:
+        result = self.root
+        #Going down the Trie and checking letters 
+        # until the full word is found using a 
+        # breadth-first-search-like algorithm
+        parent = self.root
+        children = parent.children
+        for letter in word:
+            #Returning when
+            # there are no more nodes to traverse
+            if not len(children):
+                result = None
+                break
+            #Iterating through the children 
+            #and checking for matches otherwise
+            for node in children:
+                child = node.get()
+                if child.letter != letter:
+                    continue
+                #When a match happens, 
+                # set the result to the matching node,
+                # stop iterating,
+                # and advance the parent and children pointers down
+                # the Trie
+                result = child
+                parent = child
+                children = parent.children
+                break
+        return result
+
     #Delete a word from the Trie starting from the end of a choosen prefix.
     #We can only delete when
     # 1. There is an unbroken sequence of 0-frequency nodes
@@ -162,9 +194,7 @@ class Trie:
         # non-zero node after a subtract
         parent = prefix_end
         children = parent.children
-        index = 0
-        while index < len(word):
-            letter = word[index]
+        for letter in word:
             #No more nodes to traverse means it could not be found, so simply return
             if not len(children):
                 return False
@@ -186,8 +216,6 @@ class Trie:
                 parent = child
                 children = parent.children
                 break
-            #Increment index
-            index += 1
         #Delete all from the prefix node down to the bottom of the Trie
         # if the last non-zero node isn't a leaf node and either
         # we aren't protecting prefixes 

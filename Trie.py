@@ -84,7 +84,7 @@ class Trie:
             if popular is self.root:
                 popular = next(iter(children))
             #Add to the result
-            result += parent.letter
+            result += popular.letter
             #Advance the parent and children on the popular path
             parent = popular
             children = parent.children

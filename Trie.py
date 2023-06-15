@@ -44,9 +44,8 @@ class Trie:
         result = ""
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.
-        #If there are no children left 
-        # or not enough matches were found, 
-        # either return or continue down the branch based on popularity
+        #If there are some matches but not a complete match,
+        # continue down the branch based on popularity
         parent = self.root
         children = parent.children
         for letter in word:
@@ -74,7 +73,7 @@ class Trie:
         #Go down the rest of the branch based on 
         # the rightmost most popular children
         while len(children):
-            #Select the most poular child
+            #Select the rightmost most poular child
             popular = self.root
             for node in children:
                 child = node.get()
@@ -83,7 +82,7 @@ class Trie:
                 popular = child
             #If the popular one is still the root, choose the first child
             if popular is self.root:
-                popular = next(iter(children))
+                popular = children.head.get()
             #Add to the result
             result += popular.letter
             #Advance the parent and children on the popular path
@@ -96,9 +95,8 @@ class Trie:
         result = ""
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.
-        #If there are no children left 
-        # or not enough matches were found, 
-        # either return or continue down the branch based on popularity
+        #If no matches were found, return. 
+        #Otherwise, continue down the branch based on popularity
         parent = self.root
         children = parent.children
         for letter in word:
@@ -126,7 +124,7 @@ class Trie:
         #Go down the rest of the branch based on 
         # the rightmost most popular children
         while len(children):
-            #Select the most poular child
+            #Select the rightmost most poular child
             popular = self.root
             for node in children:
                 child = node.get()

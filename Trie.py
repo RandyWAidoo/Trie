@@ -22,21 +22,57 @@ class Trie:
         index = 0
         while index < len(word):
             letter = word[index]
-            #Adding the letter as a child node when 
+            #Returning when
             # there are no more nodes to traverse
             if not len(children):
                 return False
-            #Going down the Trie and updating frequencies otherwise
+            #Iterating through the children 
+            #and checking for matches otherwise
             for node in children:
                 child = node.get()
                 if child.letter != letter:
                     continue
+                #When a match happens, stop iterating 
+                # and advance the parent and children pointers down
+                # the Trie
                 parent = child
                 children = parent.children
                 break
             #Increment index
             index += 1
         return True
+
+    def match_count(self, word: str)->int:
+        match_count = 0
+        #Going down the Trie and ytacking matches 
+        # until the full word is found using a 
+        # breadth-first-search-like algorithm
+        parent = self.root
+        children = parent.children
+        index = 0
+        while index < len(word):
+            letter = word[index]
+            #Returning when
+            # there are no more nodes to traverse
+            if not len(children):
+                return match_count
+            #Iterating through the children 
+            #and tracking matches otherwise
+            for node in children:
+                child = node.get()
+                if child.letter != letter:
+                    continue
+                #When a match happens, increment the match count,
+                # stop iterating,
+                # and advance the parent and children pointers down
+                # the Trie
+                match_count += 1
+                parent = child
+                children = parent.children
+                break
+            #Increment index
+            index += 1
+        return match_count
     
     #Get a node at the end of a certain word
     def __get_word_end_node(self, prefix: str)->Node:
@@ -49,16 +85,22 @@ class Trie:
         index = 0
         while index < len(prefix):
             letter = prefix[index]
-            #Adding the letter as a child node when 
+            #Returning when
             # there are no more nodes to traverse
             if not len(children):
                 result = None
                 break
-            #Going down the Trie and updating frequencies otherwise
+            #Iterating through the children 
+            #and checking for matches otherwise
             for node in children:
                 child = node.get()
                 if child.letter != letter:
                     continue
+                #When a match happens, 
+                # set the result to the matching node,
+                # stop iterating,
+                # and advance the parent and children pointers down
+                # the Trie
                 result = child
                 parent = child
                 children = parent.children
@@ -126,7 +168,7 @@ class Trie:
             #No more nodes to traverse means it could not be found, so simply return
             if not len(children):
                 return False
-            #Going down the Trie and updating frequencies/deleting otherwise
+            #Going down the Trie and updating frequencies otherwise
             for node in children:
                 child = node.get()
                 if child.letter != letter:

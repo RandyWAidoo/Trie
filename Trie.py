@@ -75,7 +75,7 @@ class Trie:
             popular = self.root
             for node in children:
                 child = node.get()
-                if child.letter < popular.frequency:
+                if child.frequency < popular.frequency:
                     continue
                 popular = child
             #Advance the parent and children on the popular path
@@ -238,7 +238,7 @@ class Trie:
     # among the the children of its parent is large enough
     def __valid(self, child: Node, root: Node,
                 depth_to_count, depth, 
-                min_letters, min_depth_fraction):
+                min_letters, branch_fraction):
         #Get the number of letters at this depth
         depth_total = depth_to_count[depth]
         #Get the proportion of this letter 
@@ -246,14 +246,14 @@ class Trie:
         proportion = child.frequency/len(root.children)
         #Check that both meet the requirements
         if depth_total >= min_letters \
-        and proportion >= min_depth_fraction:
+        and proportion >= branch_fraction:
             return True
         return False
 
     #Recursive helper of `prune` with no prefix protection
     def __prune_no_protect(self, depth_to_count: list, 
                            root: Node, 
-                           min_letters: int, min_depth_fraction: float, 
+                           min_letters: int, branch_fraction: float, 
                            depth=0):
         #Recursively iterate over the Trie and 
         # delete words/letters that 
@@ -262,7 +262,7 @@ class Trie:
             child = node.get()
             self.__prune_no_protect(
                 depth_to_count, child, 
-                min_letters, min_depth_fraction,
+                min_letters, branch_fraction,
                 depth+1
             )
             #If the node is invalid,
@@ -270,14 +270,14 @@ class Trie:
             # and delete it
             if not self.__valid(child, root,
                                 depth_to_count, depth,
-                                min_letters, min_depth_fraction):
+                                min_letters, branch_fraction):
                 self.letter_count -= root.frequency
                 root.children.pop(node)
 
     #Recursive helper of `prune` with prefix protection
     def __prune_prefix_protect(self, depth_to_count: dict, 
                                root: Node, 
-                               min_letters: int, min_depth_fraction: float, 
+                               min_letters: int, branch_fraction: float, 
                                depth=0):
         #Recursively iterate over the Trie and 
         # delete words/letters that 
@@ -286,7 +286,7 @@ class Trie:
             child = node.get()
             self.__prune_prefix_protect(
                 depth_to_count, child, 
-                min_letters, min_depth_fraction,
+                min_letters, branch_fraction,
                 depth+1
             )
             #The child must not have children and must be invalid to
@@ -297,7 +297,7 @@ class Trie:
             if not len(child.children) \
             and not self.__valid(child, root, 
                                 depth_to_count, depth,
-                                min_letters, min_depth_fraction):
+                                min_letters, branch_fraction):
                 self.letter_count -= child.frequency
                 root.children.pop(node)
     
@@ -323,16 +323,16 @@ class Trie:
     #Prune the tree of letters that are part of depths that have too few letters
     # and letters at those depths that don't appear frequently enough.
     def prune(self, min_letters: int, 
-              min_depth_fraction: float, protect_prefixes: bool = True):
+              branch_fraction: float, protect_prefixes: bool = True):
         if protect_prefixes:
             self.__prune_prefix_protect(
                 self.depth_counts(), self.root, 
-                min_letters, min_depth_fraction
+                min_letters, branch_fraction
             )
         else:
             self.__prune_no_protect(
                 self.depth_counts(), self.root, 
-                min_letters, min_depth_fraction
+                min_letters, branch_fraction
             )
 
     #Recursive helper of `decompress`

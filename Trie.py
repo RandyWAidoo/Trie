@@ -90,13 +90,16 @@ class Trie:
             children = parent.children
         return result
 
-    #Get the full branch with which a word has any matches
+    #Get the full branch with which a word has any unique matches
+    # (meanining one of the matches was with one of several possible nodes)
+    #  or full matches
     def label(self, word: str)->str:
         result = ""
+        unique_match_found = False
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.
-        #If no matches were found, return. 
-        #Otherwise, continue down the branch based on popularity
+        #If no matches were found, or no matches were unique, return. 
+        #Otherwise, continue down the branch based on popularity unitl the bottom
         parent = self.root
         children = parent.children
         for letter in word:
@@ -110,17 +113,21 @@ class Trie:
                     continue
                 found = True
                 break
+            #Check that the match was unique
+            if not parent is self.root \
+            and found and len(children) > 1:
+                unique_match_found = True
             #If no matching node was found, stop
-            if not found:
+            elif not found:
                 break
             #Add to the result
             result += letter
             #Advance the parent and children
             parent = child
             children = parent.children
-        #Return if no letters were found
-        if not len(result):
-            return result
+        #Return if no letters were found or the last match was
+        if not len(result) or not unique_match_found:
+            return ""
         #Go down the rest of the branch based on 
         # the rightmost most popular children
         while len(children):

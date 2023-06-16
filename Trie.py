@@ -37,15 +37,29 @@ class Trie:
             parent = child
             children = parent.children
         return True
-    
-    #Get the full branch with which a word has any matches
-    # or return if the word gets a full match
-    def nearest(self, word: str)->str:
-        result = ""
+
+    #Build strings by visiting every node beyond a certain node
+    def __generate(self, root: Node, word: str = "", result_list: list = [])->list:
+        #Append the result and return if it is a leaf node
+        # and it still has a frequency
+        if not len(root.children):
+            result_list.append(word)
+            return result_list
+        #Otherwise recurse on each of its children down to the last node
+        for node in root.children:
+            child = node.get()
+            #Recurse on the child with the word
+            # extended by the child's letter
+            self.__generate(child, word+child.letter, result_list)
+        return result_list
+
+    #Get the complete strings of all branches to which 
+    # a word lies on or could extend to
+    def labels(self, word: str, min_matches=1)->list:
+        base_str = ""
+        matches = 0
         #Going down the Trie and checking for matches 
         # using a breadth-first-search-like algorithm.
-        #If there are some matches but not a complete match,
-        # continue down the branch based on popularity
         parent = self.root
         children = parent.children
         for letter in word:
@@ -62,91 +76,18 @@ class Trie:
             #If no matching node was found, stop
             if not found:
                 break
-            #Add to the result
-            result += letter
+            #Add to the result and match count
+            base_str += letter
+            matches += 1
             #Advance the parent and children
             parent = child
             children = parent.children
-        #Return if all letters were found or no letters were found
-        if len(result) == len(word) or not len(result):
-            return result
-        #Go down the rest of the branch based on 
-        # the rightmost most popular children
-        while len(children):
-            #Select the rightmost most poular child
-            popular = self.root
-            for node in children:
-                child = node.get()
-                if child.frequency < popular.frequency:
-                    continue
-                popular = child
-            #If the popular one is still the root, choose the first child
-            if popular is self.root:
-                popular = children.head.get()
-            #Add to the result
-            result += popular.letter
-            #Advance the parent and children on the popular path
-            parent = popular
-            children = parent.children
-        return result
-
-    #Get the full branch with which a word has any unique matches
-    # (meanining one of the matches was with one of several possible nodes)
-    #  or full matches
-    def label(self, word: str)->str:
-        result = ""
-        unique_match_found = False
-        #Going down the Trie and checking for matches 
-        # using a breadth-first-search-like algorithm.
-        #If no matches were found, or no matches were unique, return. 
-        #Otherwise, continue down the branch based on popularity unitl the bottom
-        parent = self.root
-        children = parent.children
-        for letter in word:
-            #Iterating through the children 
-            #and checking for a match
-            found = False
-            child = None
-            for node in children:
-                child = node.get()
-                if child.letter != letter:
-                    continue
-                found = True
-                break
-            #Check that the match was unique
-            if not parent is self.root \
-            and found and len(children) > 1:
-                unique_match_found = True
-            #If no matching node was found, stop
-            elif not found:
-                break
-            #Add to the result
-            result += letter
-            #Advance the parent and children
-            parent = child
-            children = parent.children
-        #Return if no letters were found or the last match was
-        if not len(result) or not unique_match_found:
-            return ""
-        #Go down the rest of the branch based on 
-        # the rightmost most popular children
-        while len(children):
-            #Select the rightmost most poular child
-            popular = self.root
-            for node in children:
-                child = node.get()
-                if child.frequency < popular.frequency:
-                    continue
-                popular = child
-            #If the popular one is still the root, choose the first child
-            if popular is self.root:
-                popular = children.head.get()
-            #Add to the result
-            result += popular.letter
-            #Advance the parent and children on the popular path
-            parent = popular
-            children = parent.children
-        return result
+        #If there aren't enough matches, return an empty list
+        if matches < min_matches:
+            return []
+        #Otherwise, return a list of all permutations
+        #  stemming from the last match
+        return self.__generate(parent, base_str)
     
     #Add a word to the Trie while tracking letter frequencies
     def append(self, word: str):
@@ -212,6 +153,7 @@ class Trie:
         for node in root.children:
             child = node.get()
             self.__prune_all_below(child)
+            #Subtract out the node's frequency and delete it
             self.letter_count -= child.frequency
             root.children.pop(node)
 
@@ -223,15 +165,15 @@ class Trie:
     # 2. When there is some chain of 0-frequencies 
     # and we arent protecting prefixes
     def delete(self, word: str, prefix: str = "", protect_prefixes=True)->bool:
-        #Going down the Trie and decrementing/deleting letters 
-        # as needed using a breadth-first-search-like algorithm
         #If the word doesn't exist, return
         if (prefix + word) not in self:
             return False
-        #First get the node at the end of the prefix
+        #Going down the Trie and decrementing/deleting letters 
+        # as needed using a breadth-first-search-like algorithm
+        # First get the node at the end of the prefix
         prefix_end = self.__get_word_end_node(prefix)
-        #Search for the letters while moving the prefix end to the last
-        # non-zero node after a subtract
+        # Search for the letters while moving the prefix end to the last
+        #  non-zero node after a subtract
         parent = prefix_end
         children = parent.children
         for letter in word:
@@ -255,11 +197,11 @@ class Trie:
             #Advance the parent and children
             parent = child
             children = parent.children
-        #Delete all below the prefix node 
-        # if the last non-zero node isn't a leaf node and either
-        # we aren't protecting prefixes 
-        # or the last 0-frequency node is a leaf
-        # (the 0-frequency nodes go down to the bottom).
+        # Delete all below the prefix node 
+        #  if the last non-zero node isn't a leaf node and either
+        #  we aren't protecting prefixes 
+        #  or the last 0-frequency node is a leaf
+        #  (the 0-frequency nodes go down to the bottom).
         if len(prefix_end.children) \
         and (not protect_prefixes or not len(parent.children)):
             self.__prune_all_below(prefix_end)
@@ -309,6 +251,7 @@ class Trie:
                 root.children.pop(node)
                 continue
             #Otherwise, recurse on the child
+            # with an incrememnted depth
             self.__prune_no_protect(
                 depth_to_count, child, 
                 min_letters, branch_fraction,
@@ -325,6 +268,7 @@ class Trie:
         # don't appear frequently enough and aren't prefixes
         for node in root.children:
             child = node.get()
+            #Recurse on the child with an incremented depth
             self.__prune_prefix_protect(
                 depth_to_count, child, 
                 min_letters, branch_fraction,
@@ -333,7 +277,7 @@ class Trie:
             #The child must not have children and must be invalid to
             # be deleted. This protects prefixes.
             #If the child is invalid,
-            # subtract out its frequency from the total letter count
+            # subtract out its frequency
             # and delete it
             if not len(child.children) \
             and not self.__valid(child, root, 
@@ -349,12 +293,12 @@ class Trie:
         # and recurse on each of `root`'s children down to the last node
         for node in root.children:
             child = node.get()
-            #Add the visited letter to the depth count
+            #Add the visited letter to the depth count at this depth
             if depth == len(depth_to_count):
                 depth_to_count.append(child.frequency)
             else:
                 depth_to_count[depth] += child.frequency
-            #Recurse on the child
+            #Recurse on the child with an incremented depth
             self.__depth_counts(child, depth+1, depth_to_count)
         return depth_to_count
     
@@ -362,8 +306,9 @@ class Trie:
     def depth_counts(self)->list: 
         return self.__depth_counts(self.root)
         
-    #Prune the tree of letters that are part of depths that have too few letters
-    # and letters at those depths that don't appear frequently enough.
+    #Prune the tree of depths with too few letters
+    # and letters that don't appear frequently 
+    # enough among the children of their parent letters.
     def prune(self, min_letters: int, 
               branch_fraction: float, protect_prefixes: bool = True):
         if protect_prefixes:
@@ -379,7 +324,7 @@ class Trie:
 
     #Recursive helper of `decompress`
     def __decompress(self, root: Node, 
-                     result_list: list = [], word: str = "")->list:
+                     word: str = "", result_list: list = [])->list:
         #Decrement frequency
         if root.frequency:
             root.frequency -= 1
@@ -390,14 +335,13 @@ class Trie:
             return result_list
         #Otherwise recurse on each of its children down to the last node
         for node in root.children:
-            #Extract a word from the letters
             child = node.get()
             #Decrement root frequency
             # for each child node traversed from it
             if root.frequency:
                 root.frequency -= 1
-            #Recurse on the child
-            self.__decompress(child, result_list, word+child.letter)
+            #Recurse on the child with the word extended by the child's letter
+            self.__decompress(child, word+child.letter, result_list)
             #Having the condition of no children before deletion
             # ensures prefix safety until the end
             if not child.frequency and not len(child.children):
@@ -408,6 +352,6 @@ class Trie:
     def decompress(self)->list:
         words = list()
         while len(self.root.children):
-            self.__decompress(self.root, words)
+            self.__decompress(self.root, "", words)
         self.letter_count = 0
         return words

@@ -210,18 +210,16 @@ class Trie:
     #Check if the depth's letter count is sufficient  
     # and the proportion of the node's letter 
     # among the the children of its parent is large enough
-    def __valid(self, child: Node, root: Node,
+    def __valid(self, child: Node, n_children,
                 depth_to_count, depth, 
                 min_letters, branch_fraction):
         #Get the number of letters at this depth
         depth_total = depth_to_count[depth]
         #Get the proportion of this letter 
         # out of all letters in this set of children
-        total_children = sum(
-            [node.get().frequency \
-             for node in root.children.copy()]
-        )
-        proportion = child.frequency/total_children
+        proportion = float("inf")
+        if n_children:
+            proportion = child.frequency/n_children
         #Check that both meet the requirements
         if depth_total >= min_letters \
         and proportion >= branch_fraction:
@@ -234,6 +232,12 @@ class Trie:
                            root: Node, 
                            min_letters: int, branch_fraction: float, 
                            depth=0):
+        #Save the number of children so it stays
+        # consistent in future comparisons
+        n_children = sum(
+            [len(node.get().children) \
+             for node in root.children]
+        )
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough
@@ -243,7 +247,7 @@ class Trie:
             # delete all its children,
             # subtract out its frequency,
             # and then delete the child itself
-            if not self.__valid(child, root,
+            if not self.__valid(child, n_children,
                                 depth_to_count, depth,
                                 min_letters, branch_fraction):
                 self.__prune_all_below(child)
@@ -263,6 +267,12 @@ class Trie:
                                root: Node, 
                                min_letters: int, branch_fraction: float, 
                                depth=0):
+        #Save the number of children so it stays
+        # consistent in future comparisons
+        n_children = sum(
+            [len(node.get().children) \
+             for node in root.children]
+        )
         #Recursively iterate over the Trie and 
         # delete words/letters that 
         # don't appear frequently enough and aren't prefixes
@@ -280,7 +290,7 @@ class Trie:
             # subtract out its frequency
             # and delete it
             if not len(child.children) \
-            and not self.__valid(child, root, 
+            and not self.__valid(child, n_children, 
                                 depth_to_count, depth,
                                 min_letters, branch_fraction):
                 self.letter_count -= child.frequency

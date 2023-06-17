@@ -87,7 +87,7 @@ class Trie:
             return []
         #Otherwise, return a list of all permutations
         #  stemming from the last match
-        return self.__generate(parent, base_str)
+        return self.__generate(parent, base_str, [])
     
     #Add a word to the Trie while tracking letter frequencies
     def append(self, word: str):

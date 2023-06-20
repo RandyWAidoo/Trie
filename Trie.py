@@ -128,7 +128,7 @@ class Trie:
             self.__subtree(child, word+child.letter, result_list)
         return result_list
     
-    def unique(self):
+    def unique(self)->list:
         return self.__subtree(self.root, "", [])
 
     #Get the complete strings of all branches to which 

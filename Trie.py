@@ -1,22 +1,71 @@
 from LinkedList import LinkedList
+import numpy as np
 
 class Trie:
+    class Reference:
+        def __init__(self, data):
+            self.data = data
+
     class Node:
-        def __init__(self, letter="", children=LinkedList(), frequency=1):
+        def __init__(self, letter="", children=LinkedList(), is_end=False):
             self.letter = letter
             self.children = children
-            self.frequency = frequency
+            self.is_end = is_end
     
     def __init__(self, sequences=set()):
-        self.root = self.Node("", LinkedList(), 0)
-        self.letter_count = 0
+        self.root = self.Node("", LinkedList())
+        self.word_count = 0
+        self.end_to_index = dict() 
         for sequence in sequences:
             self.append(sequence)
 
-    def __contains__(self, word: str)->bool:
+    #Query
+
+    def __len__(self)->int:
+        return self.word_count
+    
+    #Recursive helper of `depth_counts`
+    def __depth_counts(self, root: Node, 
+                       curr_freq: Reference = Reference(0),
+                       depth = 0, depth_to_count=[])->list:
+        #Save the frequencies of the children in an array that will be populated
+        # during iteration through the children
+        frequencies = []
+        #Recurse on each of `root`'s children down to the last node
+        # while updating the depth count list
+        for node in root.children:
+            child = node.get()
+            #Add to the size of the depth count list when necessary
+            if depth == len(depth_to_count):
+                depth_to_count.append(0)
+            #Recurse on the child with an incremented depth
+            self.__depth_counts(child, curr_freq, 
+                                depth+1, depth_to_count)
+            #Update the frequency with the current node's frequency
+            # if it is a word end
+            if child.is_end:
+                curr_freq.data = len(self.end_to_index[child])
+            #Add to the count for this depth
+            depth_to_count[depth] += curr_freq.data
+            #Append the current frequency to `frequencies`
+            frequencies.append(curr_freq.data)
+        #Set the current frequency to the sum of the frequencies
+        # so that the previous call and gets the right frequency
+        curr_freq.data = sum(frequencies)
+        return depth_to_count
+    
+    #Generate a list maping depth to the numnber of letters there
+    def depth_counts(self)->list: 
+        return self.__depth_counts(
+            self.root, self.Reference(0), 0, []
+        )
+
+    #Search/Traversal
+
+    def __contains__(self, word: str, instance: int = 0)->bool:
         #Going down the Trie and checking for matches
         # until the full word is found using a 
-        # breadth-first-search-like algorithm
+        # child-node-searching algorithm
         parent = self.root
         children = parent.children
         for letter in word:
@@ -36,12 +85,38 @@ class Trie:
             #Advance the parent and children
             parent = child
             children = parent.children
-        return True
+        #Check that it has as many instances as required
+        return (len(self.end_to_index[parent]) >= instance)
+    
+    #Get a node at the end of a certain word
+    def __get_word_end_node(self, word: str)->Node:
+        #Going down the Trie and checking letters 
+        # until the full word is found using a 
+        # child-node-searching algorithm
+        parent = self.root
+        children = parent.children
+        for letter in word:
+            #Iterating through the children 
+            #and checking for a match
+            found = False
+            child = None
+            for node in children:
+                child = node.get()
+                if child.letter != letter:
+                    continue
+                found = True
+                break
+            #Break if no match is found
+            if not found:
+                break
+            #Advance the parent and children
+            parent = child
+            children = parent.children
+        return parent
 
     #Build strings by visiting every node beyond a certain node
-    def __generate(self, root: Node, word: str = "", result_list: list = [])->list:
+    def __subtree(self, root: Node, word: str = "", result_list: list = [])->list:
         #Append the result and return if it is a leaf node
-        # and it still has a frequency
         if not len(root.children):
             result_list.append(word)
             return result_list
@@ -50,7 +125,7 @@ class Trie:
             child = node.get()
             #Recurse on the child with the word
             # extended by the child's letter
-            self.__generate(child, word+child.letter, result_list)
+            self.__subtree(child, word+child.letter, result_list)
         return result_list
 
     #Get the complete strings of all branches to which 
@@ -59,7 +134,7 @@ class Trie:
         base_str = ""
         matches = 0
         #Going down the Trie and checking for matches 
-        # using a breadth-first-search-like algorithm.
+        # using a child-node-searching algorithm.
         parent = self.root
         children = parent.children
         for letter in word:
@@ -87,19 +162,20 @@ class Trie:
             return []
         #Otherwise, return a list of all permutations
         #  stemming from the last match
-        return self.__generate(parent, base_str, [])
+        return self.__subtree(parent, base_str, [])
     
+    #Modification
+
     #Add a word to the Trie while tracking letter frequencies
     def append(self, word: str):
         #Going down the Trie and appending letters as needed using a 
-        # breadth-first-search-like algorithm
+        # child-node-searching algorithm
         parent = self.root
         children = parent.children
         for letter in word:
-            #Going down the Trie and 
-            # incrementing the frequency of the letter if it is found.
-            #If none of the letters of the current children are right, 
-            # insert the new letter
+            #If none of the letters of the current children 
+            # are a match to the current letter, 
+            # insert the letter as a new node
             found = False
             child = None
             for node in children:
@@ -111,106 +187,98 @@ class Trie:
             #Adding the letter as a child node when 
             # there are no more nodes to traverse
             if not found:
-                child = self.Node(letter, LinkedList(), 0)
+                child = self.Node(letter, LinkedList())
                 parent.children.append(child)
-            #Add to the child's frequency and the letter count
-            child.frequency += 1
-            self.letter_count += 1
             #Advance the parent and children
             parent = child
             children = parent.children
-    
-    #Get a node at the end of a certain word
-    def __get_word_end_node(self, word: str)->Node:
-        #Going down the Trie and checking letters 
-        # until the full word is found using a 
-        # breadth-first-search-like algorithm
-        parent = self.root
+        #Indicate that the current parent is a word end
+        parent.is_end = True
+        #Update word end to index list dictionary
+        if parent not in self.end_to_index:
+            self.end_to_index[parent] = [self.word_count]
+        else:
+            self.end_to_index[parent].append(self.word_count)
+        #Update word count
+        self.word_count += 1
+
+    #Go to every index greater a deleted one and decrement it
+    def __reindex(self, deleted_index: int):
+        for _, indicies in self.end_to_index.items():
+            for i in range(len(indicies)):
+                if indicies[i] < deleted_index:
+                    continue
+                indicies[i] -= 1
+
+    #Delete a word from the Trie
+    def delete(self, word: str, prefix: str = "", instance: int = 0)->bool:
+        prefix_end = self.__get_word_end_node(prefix)
+        #Stop if the word isn't in the Trie
+        if prefix_end == None:
+            return False
+        #Going down the Trie and checking for matches 
+        # using a child-node-searching algorithm.
+        parent = prefix_end
         children = parent.children
+        first_letter_node = None
         for letter in word:
             #Iterating through the children 
             #and checking for a match
             found = False
             child = None
+            _node = None
             for node in children:
+                _node = node
                 child = node.get()
                 if child.letter != letter:
                     continue
                 found = True
                 break
-            #Break if no match is found
+            #If no matching node was found, return
             if not found:
-                break
+                return False
+            #If the child is the first letter node of the prefix
+            # set the first letter node
+            if children is prefix_end.children:
+                first_letter_node = _node
+            #Otherwise, if  it is a node with 2+ children,
+            # move the prefix end to it
+            if len(child.children) > 1:
+                prefix_end = child
             #Advance the parent and children
             parent = child
             children = parent.children
-        return parent
-    
-    #Delete all nodes below a particular node
-    def __prune_all_below(self, root: Node):
-        #Recursively iterate over the Trie and 
-        # delete words/letters below
-        for node in root.children:
-            child = node.get()
-            self.__prune_all_below(child)
-            #Subtract out the node's frequency and delete it
-            self.letter_count -= child.frequency
-            root.children.pop(node)
-
-    #Delete a word from the Trie starting from the end of a choosen prefix.
-    #We can only delete when
-    # 1. There is an unbroken sequence of 0-frequency nodes
-    # (after subtracting from their frequencies)
-    # down to the bottom starting from the prefix end
-    # 2. When there is some chain of 0-frequencies 
-    # and we arent protecting prefixes
-    def delete(self, word: str, prefix: str = "", protect_prefixes=True)->bool:
-        #If the word doesn't exist, return
-        if (prefix + word) not in self:
+        #Stop if the parent isn't an end node
+        if not parent.is_end:
             return False
-        #Going down the Trie and decrementing/deleting letters 
-        # as needed using a breadth-first-search-like algorithm
-        # First get the node at the end of the prefix
-        prefix_end = self.__get_word_end_node(prefix)
-        # Search for the letters while moving the prefix end to the last
-        #  non-zero node after a subtract
-        parent = prefix_end
-        children = parent.children
-        for letter in word:
-            #Iterating through the children 
-            #Since we know the word is in here, we don't need to check
-            # if a letter was found
-            child = None
-            for node in children:
-                child = node.get()
-                if child.letter == letter:
-                    break
-            #Subtract from frequency and letter count if 
-            # the child's frequency is non-zero
-            if child.frequency:
-                child.frequency -= 1
-                self.letter_count -= 1
-                #Move the prefix end to the parent if the child node
-                # still has frequency
-                if child.frequency:
-                    prefix_end = parent
-            #Advance the parent and children
-            parent = child
-            children = parent.children
-        # Delete all below the prefix node 
-        #  if the last non-zero node isn't a leaf node and either
-        #  we aren't protecting prefixes 
-        #  or the last 0-frequency node is a leaf
-        #  (the 0-frequency nodes go down to the bottom).
-        if len(prefix_end.children) \
-        and (not protect_prefixes or not len(parent.children)):
-            self.__prune_all_below(prefix_end)
+        #Delete the apropriate index from 
+        # the word end to index list dict
+        indicies = self.end_to_index[parent]
+        #Return if there is no nth instance of the word
+        if len(indicies) < instance:
+            return False
+        #Otherwise, delete the instance
+        deleted_index = indicies[instance - 1]
+        indicies.pop(instance - 1)
+        #Remove the word end from the word end to indicies
+        # dict and detach the word from the prefix node
+        # if that was the only instance of it
+        if not len(indicies):
+            self.end_to_index.pop(parent)
+            #Detach only if the parent has no children
+            if not len(parent.children):
+                prefix_end.children.pop(first_letter_node)
+        #Update all the index lists
+        self.__reindex(deleted_index)
+        #Decrement word count
+        self.word_count -= 1
         return True
         
     #Check if the depth's letter count is sufficient  
     # and the proportion of the node's letter 
     # among the the children of its parent is large enough
-    def __valid(self, child: Node, n_children,
+    def __valid(self, 
+                n_children, frequency,
                 depth_to_count, depth, 
                 min_letters, branch_fraction):
         #Get the number of letters at this depth
@@ -219,7 +287,7 @@ class Trie:
         # out of all letters in this set of children
         proportion = float("inf")
         if n_children:
-            proportion = child.frequency/n_children
+            proportion = frequency/n_children
         #Check that both meet the requirements
         if depth_total >= min_letters \
         and proportion >= branch_fraction:
@@ -227,141 +295,143 @@ class Trie:
         return False
                 
 
-    #Recursive helper of `prune` with no prefix protection
-    def __prune_no_protect(self, depth_to_count: list, 
-                           root: Node, 
-                           min_letters: int, branch_fraction: float, 
-                           depth=0):
-        #Save the number of children so it stays
-        # consistent in future comparisons
-        n_children = sum(
-            [len(node.get().children) \
-             for node in root.children]
-        )
-        #Recursively iterate over the Trie and 
-        # delete words/letters that 
-        # don't appear frequently enough
+    #Recursive helper of `prune`. Returns how many were deleted
+    def __prune(self, depth_to_count: list, 
+                root: Node, 
+                min_letters: int, branch_fraction: float,
+                curr_freq: Reference = Reference(0), 
+                depth=0)->int:
+        #Save the frequencies of the children in an array that will be populated
+        # during iteration through the children
+        frequencies = []
+        #Track if any are deleted
+        some_deleted = False
+        #Recursively iterate over the Trie and populate `frequencies`
+        for node in root.children:
+            child = node.get()
+            #Recurse on the child
+            # with an incremented depth
+            some_deleted = some_deleted or self.__prune(
+                depth_to_count, child,
+                min_letters, branch_fraction,
+                curr_freq,
+                depth+1
+            )
+            #Update the frequency with the current node's frequency
+            # if it is a word end
+            if child.is_end:
+                curr_freq.data = len(self.end_to_index[child])
+            #Append the current frequency to `frequencies`
+            frequencies.append(curr_freq.data)
+        #Check for the validity of each node and delete if it
+        # is invalid. 
+        n_children = sum(frequencies)
+        i = 0
         for node in root.children:
             child = node.get()
             #If the node is invalid,
             # delete all its children,
-            # subtract out its frequency,
+            # vacate the child's index data to the root 
+            # if its a word end,
             # and then delete the child itself
-            if not self.__valid(child, n_children,
+            if not self.__valid(n_children, frequencies[i],
                                 depth_to_count, depth,
                                 min_letters, branch_fraction):
-                self.__prune_all_below(child)
-                self.letter_count -= root.frequency
+                child = node.get()
+                #Vacate its index data
+                # and remove it from the end to indicies dict
+                # if its a word end
+                if child.is_end:
+                    #Vacating. Only vacate if the 
+                    # root isn't the Trie root
+                    if not root is self.root:
+                        indicies = self.end_to_index[child]
+                        if root not in self.end_to_index:
+                            self.end_to_index[root] = indicies
+                        else:
+                            self.end_to_index[root] += indicies
+                        root.is_end = True
+                    #Deletion from the dict
+                    self.end_to_index.pop(child)
+                #Remove it from the children
                 root.children.pop(node)
-                continue
-            #Otherwise, recurse on the child
-            # with an incrememnted depth
-            self.__prune_no_protect(
-                depth_to_count, child, 
-                min_letters, branch_fraction,
-                depth+1
-            )
+                #Update deletion flag
+                some_deleted = True
+            #Increment i
+            i += 1
+        #Set the current frequency to `n_children`
+        # so that the previous call gets the right frequency
+        curr_freq.data = n_children
+        return some_deleted
+    
+    #Rebuild the word end to index list dict
+    def rebuild_index(self):
+        #Tuple like class with a less than comparator
+        # for less than comparison
+        class Tuple:
+            def __init__(self, data=[]):
+                self.data = data
 
-    #Recursive helper of `prune` with prefix protection
-    def __prune_prefix_protect(self, depth_to_count: dict, 
-                               root: Node, 
-                               min_letters: int, branch_fraction: float, 
-                               depth=0):
-        #Save the number of children so it stays
-        # consistent in future comparisons
-        n_children = sum(
-            [len(node.get().children) \
-             for node in root.children]
-        )
-        #Recursively iterate over the Trie and 
-        # delete words/letters that 
-        # don't appear frequently enough and aren't prefixes
-        for node in root.children:
-            child = node.get()
-            #Recurse on the child with an incremented depth
-            self.__prune_prefix_protect(
-                depth_to_count, child, 
-                min_letters, branch_fraction,
-                depth+1
-            )
-            #The child must not have children and must be invalid to
-            # be deleted. This protects prefixes.
-            #If the child is invalid,
-            # subtract out its frequency
-            # and delete it
-            if not len(child.children) \
-            and not self.__valid(child, n_children, 
-                                depth_to_count, depth,
-                                min_letters, branch_fraction):
-                self.letter_count -= child.frequency
-                root.children.pop(node)
-    
-    #Recursive helper of `depth_counts`
-    def __depth_counts(self, root: Node, 
-                       depth = 0, depth_to_count=[])->list:
-        #Update the depth to count list
-        # and recurse on each of `root`'s children down to the last node
-        for node in root.children:
-            child = node.get()
-            #Add the visited letter to the depth count at this depth
-            if depth == len(depth_to_count):
-                depth_to_count.append(child.frequency)
-            else:
-                depth_to_count[depth] += child.frequency
-            #Recurse on the child with an incremented depth
-            self.__depth_counts(child, depth+1, depth_to_count)
-        return depth_to_count
-    
-    #Generate a list maping depth to the numnber of letters there
-    def depth_counts(self)->list: 
-        return self.__depth_counts(self.root)
+            def __lt__(self, other)->bool:
+                return self.data[0] < other.data[0]
+            
+            def __iter__(self):
+                return self.data.__iter__()
+            
+            def __next__(self):
+                return self.data.__next__()
+            
+        #Gather all indicies, pointers 
+        # to the letter they are mapped to,
+        # and indicies of where in their list they appaer
+        # into a list
+        indicies_and_data = []
+        for end_node, indicies in self.end_to_index.items():
+            for i in range(len(indicies)):
+                to_append = Tuple([indicies[i], end_node, i])
+                indicies_and_data.append(to_append)
+        #Update word count
+        self.word_count = len(indicies_and_data)
+        #Sort the list
+        indicies_and_data = np.sort(indicies_and_data)
+        #Replace the indices associated with each end node
+        # with the appropriate indicies
+        for i in range(len(indicies_and_data)):
+            _, end_node, list_index = indicies_and_data[i]
+            self.end_to_index[end_node][list_index] = i
         
     #Prune the tree of depths with too few letters
     # and letters that don't appear frequently 
     # enough among the children of their parent letters.
-    def prune(self, min_letters: int, 
-              branch_fraction: float, protect_prefixes: bool = True):
-        if protect_prefixes:
-            self.__prune_prefix_protect(
-                self.depth_counts(), self.root, 
-                min_letters, branch_fraction
-            )
-        else:
-            self.__prune_no_protect(
-                self.depth_counts(), self.root, 
-                min_letters, branch_fraction
-            )
+    def prune(self, min_letters: int, branch_fraction: float):
+        some_deleted = self.__prune(
+            self.depth_counts(), self.root, 
+            min_letters, branch_fraction,
+            self.Reference(0), 0
+        )
+        #Rebuild the index after all the pruning
+        # if any were deleted
+        if some_deleted:
+            self.rebuild_index()
 
     #Recursive helper of `decompress`
     def __decompress(self, root: Node, 
                      word: str = "", result_list: list = [])->list:
-        #Decrement frequency
-        if root.frequency:
-            root.frequency -= 1
-        #Append the result and return if it is a leaf node
-        # and it still has a frequency
-        if not len(root.children):
-            result_list.append(word)
-            return result_list
-        #Otherwise recurse on each of its children down to the last node
+        #If it is a word end node, 
+        # place the result in the list 
+        # at the appropriate indexes
+        if root.is_end:
+            for index in self.end_to_index[root]:
+                result_list[index] = word
+        #Recurse on each of its children down to the last node
         for node in root.children:
             child = node.get()
-            #Decrement root frequency
-            # for each child node traversed from it
-            if root.frequency:
-                root.frequency -= 1
             #Recurse on the child with the word extended by the child's letter
             self.__decompress(child, word+child.letter, result_list)
-            #Having the condition of no children before deletion
-            # ensures prefix safety until the end
-            if not child.frequency and not len(child.children):
-                root.children.pop(node)
         return result_list
 
-    #Get all the words out of the tree while emptying it
+    #Get all the words out of the tree
     def decompress(self)->list:
-        words = list()
-        while len(self.root.children):
-            self.__decompress(self.root, "", words)
-        self.letter_count = 0
+        words = ["" for _ in range(self.word_count)]
+        self.__decompress(self.root, "", words)
         return words

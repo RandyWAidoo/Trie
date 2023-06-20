@@ -275,26 +275,6 @@ class Trie:
         #Decrement word count
         self.word_count -= 1
         return True
-        
-    #Check if the depth's letter count is sufficient  
-    # and the proportion of the node's letter 
-    # among the the children of its parent is large enough
-    def __valid(self, 
-                n_children, frequency,
-                depth_to_count, depth, 
-                min_index_count, branch_fraction):
-        #Get the number of letters at this depth
-        depth_total = depth_to_count[depth]
-        #Get the proportion of this letter 
-        # out of all letters in this set of children
-        proportion = float("inf")
-        if n_children:
-            proportion = frequency/n_children
-        #Check that both meet the requirements
-        if depth_total >= min_index_count \
-        and proportion >= branch_fraction:
-            return True
-        return False
                 
     def __prune_all_below(self, root: Node, indicies = []):
         #Recurse down to the last node. 
@@ -315,6 +295,7 @@ class Trie:
             root.children.pop(node)
         #Return the index list
         return indicies
+    
     #Recursive helper of `prune`. Returns how many were deleted
     def __prune(self, depth_to_count: list, 
                 root: Node, 

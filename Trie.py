@@ -127,6 +127,9 @@ class Trie:
             # extended by the child's letter
             self.__subtree(child, word+child.letter, result_list)
         return result_list
+    
+    def unique(self):
+        return self.__subtree(self.root, "", [])
 
     #Get the complete strings of all branches to which 
     # a word lies on or could extend to
@@ -192,11 +195,10 @@ class Trie:
             #Advance the parent and children
             parent = child
             children = parent.children
-        #Indicate that the current parent is a word end
-        parent.is_end = True
         #Update word end to index list dictionary
-        if parent not in self.end_to_index:
+        if not parent.is_end:
             self.end_to_index[parent] = [self.word_count]
+            parent.is_end = True
         else:
             self.end_to_index[parent].append(self.word_count)
         #Update word count
@@ -280,7 +282,7 @@ class Trie:
     def __valid(self, 
                 n_children, frequency,
                 depth_to_count, depth, 
-                min_letters, branch_fraction):
+                min_index_count, branch_fraction):
         #Get the number of letters at this depth
         depth_total = depth_to_count[depth]
         #Get the proportion of this letter 
@@ -289,16 +291,34 @@ class Trie:
         if n_children:
             proportion = frequency/n_children
         #Check that both meet the requirements
-        if depth_total >= min_letters \
+        if depth_total >= min_index_count \
         and proportion >= branch_fraction:
             return True
         return False
                 
-
+    def __prune_all_below(self, root: Node, indicies = []):
+        #Recurse down to the last node. 
+        #Save any encountered
+        # indicies and delete the node
+        for node in root.children:
+            child = node.get()
+            #Recurse on the child
+            self.__prune_all_below(child, indicies)
+            #Saving indicies
+            if child.is_end:
+                indicies += self.end_to_index[child]
+                #Remove it from the 
+                # word end to index list dict since
+                # it will be deleted 
+                self.end_to_index.pop(child)
+            #Deletion
+            root.children.pop(node)
+        #Return the index list
+        return indicies
     #Recursive helper of `prune`. Returns how many were deleted
     def __prune(self, depth_to_count: list, 
                 root: Node, 
-                min_letters: int, branch_fraction: float,
+                min_index_count: int, branch_fraction: float,
                 curr_freq: Reference = Reference(0), 
                 depth=0)->int:
         #Save the frequencies of the children in an array that will be populated
@@ -313,7 +333,7 @@ class Trie:
             # with an incremented depth
             some_deleted = some_deleted or self.__prune(
                 depth_to_count, child,
-                min_letters, branch_fraction,
+                min_index_count, branch_fraction,
                 curr_freq,
                 depth+1
             )
@@ -329,14 +349,15 @@ class Trie:
         i = 0
         for node in root.children:
             child = node.get()
-            #If the node is invalid,
+            #Check that the letter count at
+            # this depth is acceptable
+            valid_depth_count = (depth_to_count[depth] >= min_index_count)
+            #If the depth count is invalid,
             # delete all its children,
             # vacate the child's index data to the root 
             # if its a word end,
             # and then delete the child itself
-            if not self.__valid(n_children, frequencies[i],
-                                depth_to_count, depth,
-                                min_letters, branch_fraction):
+            if not valid_depth_count:
                 child = node.get()
                 #Vacate its index data
                 # and remove it from the end to indicies dict
@@ -346,16 +367,47 @@ class Trie:
                     # root isn't the Trie root
                     if not root is self.root:
                         indicies = self.end_to_index[child]
-                        if root not in self.end_to_index:
+                        if not root.is_end:
                             self.end_to_index[root] = indicies
+                            root.is_end = True
                         else:
                             self.end_to_index[root] += indicies
-                        root.is_end = True
-                    #Deletion from the dict
+                    #Deletion from the word end to index list dict
                     self.end_to_index.pop(child)
                 #Remove it from the children
                 root.children.pop(node)
                 #Update deletion flag
+                some_deleted = True
+                #Incrememnt i and continue
+                i += 1 
+                continue
+            #Check that
+            # this letter's frequency among the other 
+            # children is acceptable
+            valid_frequency = (frequencies[i]/n_children >= branch_fraction)
+            #If the frequency is invalid, 
+            # delete the child and all below it.
+            #Take all the indicies that were in the lower nodes and give it
+            # to the root
+            if not valid_frequency:
+                #Deleting all below the child
+                indicies = self.__prune_all_below(child, [])
+                #If the child is a word end,
+                # add its indicies to `indicies` 
+                # and delete it from the word end to index list dict
+                if child.is_end:
+                    indicies += self.end_to_index[child]
+                    self.end_to_index.pop(child)
+                #Saving the indicies in the root
+                if len(indicies) and not root is self.root:
+                    if not root.is_end:
+                        self.end_to_index[root] = indicies
+                        root.is_end = True
+                    else:
+                        self.end_to_index[root] += indicies
+                #Deleting the child
+                root.children.pop(node)
+                #Update the deletion flag
                 some_deleted = True
             #Increment i
             i += 1
@@ -403,10 +455,10 @@ class Trie:
     #Prune the tree of depths with too few letters
     # and letters that don't appear frequently 
     # enough among the children of their parent letters.
-    def prune(self, min_letters: int, branch_fraction: float):
+    def prune(self, min_index_count: int, branch_fraction: float):
         some_deleted = self.__prune(
             self.depth_counts(), self.root, 
-            min_letters, branch_fraction,
+            min_index_count, branch_fraction,
             self.Reference(0), 0
         )
         #Rebuild the index after all the pruning

@@ -40,10 +40,10 @@ class Trie:
             #Recurse on the child with an incremented depth
             self.__depth_counts(child, curr_freq, 
                                 depth+1, depth_to_count)
-            #Update the frequency with the current child's frequency
-            # if it is a leaf and a word end
-            if not len(child.children) and child.is_end:
-                curr_freq.data = len(self.end_to_index[child])
+            #Add to the frequency with the current child's frequency
+            # if it is a word end
+            if child.is_end:
+                curr_freq.data += len(self.end_to_index[child])
             #Add to the count for this depth
             depth_to_count[depth] += curr_freq.data
             #Append the current frequency to `frequencies`
@@ -317,10 +317,10 @@ class Trie:
                 curr_freq,
                 depth+1
             )
-            #Update the frequency with the current child's frequency
-            # if it is a leaf and a word end
-            if not len(child.children) and child.is_end:
-                curr_freq.data = len(self.end_to_index[child])
+            #Add to the frequency with the current child's frequency
+            # if it is a word end
+            if child.is_end:
+                curr_freq.data += len(self.end_to_index[child])
             #Append the current frequency to `frequencies`
             frequencies.append(curr_freq.data)
         #Check for the validity of each node and delete if it

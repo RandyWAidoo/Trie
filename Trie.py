@@ -28,9 +28,8 @@ class Trie:
     def __depth_counts(self, root: Node, 
                        curr_freq: Reference = Reference(0),
                        depth = 0, depth_to_count=[])->list:
-        #Save the frequencies of the children in an array that will be populated
-        # during iteration through the children
-        frequencies = []
+        #Add to the root frequency with the frequencies of its children
+        root_frequency = 0
         #Recurse on each of `root`'s children down to the last node
         # while updating the depth count list
         for node in root.children:
@@ -41,17 +40,17 @@ class Trie:
             #Recurse on the child with an incremented depth
             self.__depth_counts(child, curr_freq, 
                                 depth+1, depth_to_count)
-            #Update the frequency with the current node's frequency
-            # if it is a word end
-            if child.is_end:
+            #Update the frequency with the current child's frequency
+            # if it is a leaf and a word end
+            if not len(child.children) and child.is_end:
                 curr_freq.data = len(self.end_to_index[child])
             #Add to the count for this depth
             depth_to_count[depth] += curr_freq.data
             #Append the current frequency to `frequencies`
-            frequencies.append(curr_freq.data)
-        #Set the current frequency to the sum of the frequencies
+            root_frequency += curr_freq.data
+        #Set the current frequency to the root frequency
         # so that the previous call and gets the right frequency
-        curr_freq.data = sum(frequencies)
+        curr_freq.data = root_frequency
         return depth_to_count
     
     #Generate a list maping depth to the numnber of letters there
@@ -318,9 +317,9 @@ class Trie:
                 curr_freq,
                 depth+1
             )
-            #Update the frequency with the current node's frequency
-            # if it is a word end
-            if child.is_end:
+            #Update the frequency with the current child's frequency
+            # if it is a leaf and a word end
+            if not len(child.children) and child.is_end:
                 curr_freq.data = len(self.end_to_index[child])
             #Append the current frequency to `frequencies`
             frequencies.append(curr_freq.data)
@@ -437,8 +436,9 @@ class Trie:
     # and letters that don't appear frequently 
     # enough among the children of their parent letters.
     def prune(self, min_index_count: int, branch_fraction: float):
+        depth_counts = self.depth_counts()
         some_deleted = self.__prune(
-            self.depth_counts(), self.root, 
+            depth_counts, self.root, 
             min_index_count, branch_fraction,
             self.Reference(0), 0
         )

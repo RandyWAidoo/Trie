@@ -350,7 +350,7 @@ class Trie:
                 # and remove it from the end to indicies dict
                 # if its a word end
                 if child.is_end:
-                    #Increment `ends_deleted`
+                    #Increment `num_vacated`
                     num_vacated += 1
                     #Vacating. Only vacate if the 
                     # root isn't the Trie root
@@ -388,7 +388,7 @@ class Trie:
                 if child.is_end:
                     indicies += self.end_to_index[child]
                     self.end_to_index.pop(child)
-                #Add to `ends_deleted`
+                #Add to `num_vacated`
                 num_vacated += len(indicies)
                 #Saving the indicies in the root
                 if len(indicies) and not root is self.root:

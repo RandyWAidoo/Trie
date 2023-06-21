@@ -159,8 +159,9 @@ class Trie:
             #Advance the parent and children
             parent = child
             children = parent.children
-        #If there aren't enough matches, return an empty list
-        if matches < min_matches:
+        #If the last match wasn't a leaf 
+        # and there aren't enough matches, return an empty list
+        if len(parent.children) and matches < min_matches:
             return []
         #Otherwise, return a list of all permutations
         #  stemming from the last match
@@ -311,12 +312,13 @@ class Trie:
             child = node.get()
             #Recurse on the child
             # with an incremented depth
-            some_deleted = some_deleted or self.__prune(
+            _some_deleted = self.__prune(
                 depth_to_count, child,
                 min_index_count, branch_fraction,
                 curr_freq,
                 depth+1
             )
+            some_deleted = (some_deleted or _some_deleted)
             #Add to the frequency with the current child's frequency
             # if it is a word end
             if child.is_end:

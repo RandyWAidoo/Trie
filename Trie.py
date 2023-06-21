@@ -326,7 +326,12 @@ class Trie:
         #Check for the validity of each node and delete if it
         # is invalid. 
         n_children = sum(frequencies)
+        #Track the number of vacated indicies(explained later)
+        # so it can be subtracted from `n_children` later
+        num_vacated = 0
+        #Track frequency index
         i = 0
+        #Iterating and checking/deleting
         for node in root.children:
             child = node.get()
             #Check that the letter count at
@@ -335,7 +340,7 @@ class Trie:
             #If the depth count is invalid,
             # delete all its children,
             # vacate the child's index data to the root 
-            # if its a word end,
+            #  if its a word end,
             # and then delete the child itself
             if not valid_depth_count:
                 child = node.get()
@@ -343,6 +348,8 @@ class Trie:
                 # and remove it from the end to indicies dict
                 # if its a word end
                 if child.is_end:
+                    #Increment `ends_deleted`
+                    num_vacated += 1
                     #Vacating. Only vacate if the 
                     # root isn't the Trie root
                     if not root is self.root:
@@ -372,12 +379,15 @@ class Trie:
             if not valid_frequency:
                 #Deleting all below the child
                 indicies = self.__prune_all_below(child, [])
+                #Add the number
                 #If the child is a word end,
                 # add its indicies to `indicies` 
                 # and delete it from the word end to index list dict
                 if child.is_end:
                     indicies += self.end_to_index[child]
                     self.end_to_index.pop(child)
+                #Add to `ends_deleted`
+                num_vacated += len(indicies)
                 #Saving the indicies in the root
                 if len(indicies) and not root is self.root:
                     if not root.is_end:
@@ -391,6 +401,8 @@ class Trie:
                 some_deleted = True
             #Increment i
             i += 1
+        #Subtract out the number of vacations
+        n_children -= num_vacated
         #Set the current frequency to `n_children`
         # so that the previous call gets the right frequency
         curr_freq.data = n_children

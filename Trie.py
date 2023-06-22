@@ -331,8 +331,10 @@ class Trie:
         #Check for the validity of each node and delete if it
         # is invalid. 
         n_children = sum(frequencies)
-        base_proportion = 1/len(root.children)
-        min_proportion = base_proportion + min_bias
+        base_proportion = 1/len(frequencies)
+        min_proportion = 1
+        if len(root.children) > 1:
+            min_proportion = base_proportion + min_bias
         #Track the number of vacated indicies(explained later)
         # so it can be subtracted from `n_children` later
         num_vacated = 0

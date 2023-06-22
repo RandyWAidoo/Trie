@@ -332,9 +332,9 @@ class Trie:
         # is invalid. 
         n_children = sum(frequencies)
         base_proportion = 1/len(frequencies)
-        min_proportion = 1
-        if len(frequencies) > 1:
-            min_proportion = base_proportion + min_bias
+        min_proportion = base_proportion
+        if (min_proportion + min_bias) < 1:
+            min_proportion += min_bias
         #Track the number of vacated indicies(explained later)
         # so it can be subtracted from `n_children` later
         num_vacated = 0

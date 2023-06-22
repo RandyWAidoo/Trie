@@ -302,8 +302,12 @@ class Trie:
                 min_index_count: int, min_bias: float,
                 curr_freq: Reference = Reference(0), 
                 depth=0)->int:
-        #Return if there are no children
+        #If there are no children
+        # set current frequency to 0 because 
+        # it must be based on the frequencies of the children.
+        #Then return
         if not len(root.children):
+            curr_freq.data = 0 
             return
         #Save the frequencies of the children in an array that will be populated
         # during iteration through the children
@@ -329,18 +333,18 @@ class Trie:
             #Append the current frequency to `frequencies`
             frequencies.append(curr_freq.data)
         #Check for the validity of each node and delete if it
-        # is invalid. 
+        # is invalid
         n_children = sum(frequencies)
         base_proportion = 1/len(frequencies)
-        min_proportion = base_proportion
-        if (min_proportion + min_bias) < 1:
-            min_proportion += min_bias
-        #Track the number of vacated indicies(explained later)
-        # so it can be subtracted from `n_children` later
+        min_proportion = base_proportion + min_bias
+        if (min_proportion) > 1:
+            min_proportion = 1
+        # Track the number of vacated indicies(explained later)
+        #  so it can be subtracted from `n_children` later
         num_vacated = 0
-        #Track frequency index
+        # Track frequency index
         i = 0
-        #Iterating and checking/deleting
+        # Iterating and checking/deleting
         for node in root.children:
             child = node.get()
             #Check that the letter count at

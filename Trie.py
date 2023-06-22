@@ -299,9 +299,12 @@ class Trie:
     #Recursive helper of `prune`. Returns how many were deleted
     def __prune(self, depth_to_count: list, 
                 root: Node, 
-                min_index_count: int, branch_fraction: float,
+                min_index_count: int, min_bias: float,
                 curr_freq: Reference = Reference(0), 
                 depth=0)->int:
+        #Return if there are no children
+        if not len(root.children):
+            return
         #Save the frequencies of the children in an array that will be populated
         # during iteration through the children
         frequencies = []
@@ -314,7 +317,7 @@ class Trie:
             # with an incremented depth
             _some_deleted = self.__prune(
                 depth_to_count, child,
-                min_index_count, branch_fraction,
+                min_index_count, min_bias,
                 curr_freq,
                 depth+1
             )
@@ -328,6 +331,8 @@ class Trie:
         #Check for the validity of each node and delete if it
         # is invalid. 
         n_children = sum(frequencies)
+        base_proportion = 1/len(root.children)
+        min_proportion = base_proportion + min_bias
         #Track the number of vacated indicies(explained later)
         # so it can be subtracted from `n_children` later
         num_vacated = 0
@@ -371,9 +376,9 @@ class Trie:
                 i += 1 
                 continue
             #Check that
-            # this letter's frequency among the other 
+            # this letter's frequency relative to the other 
             # children is acceptable
-            valid_frequency = (frequencies[i]/n_children >= branch_fraction)
+            valid_frequency = (frequencies[i]/n_children >= min_proportion)
             #If the frequency is invalid, 
             # delete the child and all below it.
             #Take all the indicies that were in the lower nodes and give it
@@ -449,11 +454,11 @@ class Trie:
     #Prune the tree of depths with too few letters
     # and letters that don't appear frequently 
     # enough among the children of their parent letters.
-    def prune(self, min_index_vote: float, branch_fraction: float):
+    def prune(self, min_index_vote: float, min_bias: float = 0):
         depth_counts = self.depth_counts()
         some_deleted = self.__prune(
             depth_counts, self.root, 
-            min_index_vote*self.word_count, branch_fraction,
+            min_index_vote*self.word_count, min_bias,
             self.Reference(0), 0
         )
         #Rebuild the index after all the pruning

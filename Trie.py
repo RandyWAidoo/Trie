@@ -449,11 +449,11 @@ class Trie:
     #Prune the tree of depths with too few letters
     # and letters that don't appear frequently 
     # enough among the children of their parent letters.
-    def prune(self, min_index_count: int, branch_fraction: float):
+    def prune(self, min_index_vote: float, branch_fraction: float):
         depth_counts = self.depth_counts()
         some_deleted = self.__prune(
             depth_counts, self.root, 
-            min_index_count, branch_fraction,
+            min_index_vote*self.word_count, branch_fraction,
             self.Reference(0), 0
         )
         #Rebuild the index after all the pruning

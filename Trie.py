@@ -130,9 +130,25 @@ class Trie:
     def unique(self)->list:
         return self.__subtree(self.root, "", [])
 
+    #Recursive helper of `nearest`
+    #Build strings by visiting every first word end node beyond a certain node.
+    #Word ends are not necesarily leaves
+    def __nearest(self, root: Node, word: str = "", result_list: list = [])->list:
+        #Append the result and return if it is a word end
+        if root.is_end:
+            result_list.append(word)
+            return result_list
+        #Otherwise recurse on each of its children down to the last node
+        for node in root.children:
+            child = node.get()
+            #Recurse on the child with the word
+            # extended by the child's letter
+            self.__nearest(child, word+child.letter, result_list)
+        return result_list
+
     #Get the complete strings of all branches to which 
     # a word lies on or could extend to
-    def labels(self, word: str, min_matches=1)->list:
+    def nearest(self, word: str, min_matches=1)->list:
         base_str = ""
         matches = 0
         #Going down the Trie and checking for matches 
@@ -165,7 +181,7 @@ class Trie:
             return []
         #Otherwise, return a list of all permutations
         #  stemming from the last match
-        return self.__subtree(parent, base_str, [])
+        return self.__nearest(parent, base_str, [])
     
     #Modification
 

@@ -27,7 +27,7 @@ class Trie:
     #Recursive helper of `depth_counts`
     def __depth_counts(self, root: Node, 
                        curr_freq: Reference = Reference(0),
-                       depth = 0, depth_to_count=[])->list:
+                       depth: int = 0, depth_to_count: list = [])->list:
         #Add to the root frequency with the frequencies of its children
         root_frequency = 0
         #Recurse on each of `root`'s children down to the last node
@@ -130,25 +130,41 @@ class Trie:
     def unique(self)->list:
         return self.__subtree(self.root, "", [])
 
-    #Recursive helper of `nearest`
-    #Build strings by visiting every first word end node beyond a certain node.
-    #Word ends are not necesarily leaves
-    def __nearest(self, root: Node, word: str = "", result_list: list = [])->list:
-        #Append the result and return if it is a word end
+    #Recursive helper of `popular`
+    def __popular(self, root: Node, 
+                  word: str = "",
+                  max_occurrences: Reference = Reference(0), 
+                  max_word: Reference = Reference(""))->list:
+        #If the rooot is a word end and that word 
+        # occurs with more or the same frequency than the others,
+        # assign `max_word` to it and `max_occurrences` to its occurrence count
         if root.is_end:
-            result_list.append(word)
-            return result_list
-        #Otherwise recurse on each of its children down to the last node
+            occurrences = len(self.end_to_index[root])
+            if occurrences >= max_occurrences.data:
+                max_occurrences.data = occurrences
+                max_word.data = word
+        #Recurse on each of its children down to the last node 
+        # to search for a more popular word
         for node in root.children:
             child = node.get()
             #Recurse on the child with the word
             # extended by the child's letter
-            self.__nearest(child, word+child.letter, result_list)
-        return result_list
+            self.__popular(
+                child, word+child.letter, 
+                max_occurrences, max_word
+            )
+        return max_word.data
+
+    def popular(self):
+        return self.__popular(
+            self.root, "", 
+            self.Reference(0), 
+            self.Reference("")
+        )
 
     #Get the complete strings of all branches to which 
     # a word lies on or could extend to
-    def nearest(self, word: str, min_matches=1)->list:
+    def nearest(self, word: str, min_matches=1)->str:
         base_str = ""
         matches = 0
         #Going down the Trie and checking for matches 
@@ -178,10 +194,13 @@ class Trie:
         #If the last match wasn't a leaf 
         # and there aren't enough matches, return an empty list
         if len(parent.children) and matches < min_matches:
-            return []
+            return ""
         #Otherwise, return a list of all permutations
-        #  stemming from the last match
-        return self.__nearest(parent, base_str, [])
+        # stemming from the last match
+        return self.__popular(
+            parent, base_str, 
+            self.Reference(0), self.Reference("")
+        )
     
     #Modification
 

@@ -372,7 +372,7 @@ class Trie:
         n_children = sum(frequencies)
         base_proportion = 1/len(frequencies)
         min_proportion = base_proportion + min_bias
-        if (min_proportion) > 1:
+        if min_proportion > 1:
             min_proportion = 1
         # Track the number of vacated indicies(explained later)
         #  so it can be subtracted from `n_children` later
